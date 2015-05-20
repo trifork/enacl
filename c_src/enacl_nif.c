@@ -3,7 +3,7 @@
 #include <sodium.h>
 
 #ifndef ERL_NIF_DIRTY_SCHEDULER_SUPPORT
-# error Requires dirty schedulers
+#define ERL_NIF_DIRTY_JOB_CPU_BOUND 0
 #endif
 
 /* Errors */
