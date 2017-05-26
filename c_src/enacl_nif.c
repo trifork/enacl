@@ -745,6 +745,32 @@ ERL_NIF_TERM enif_scramble_block_16(ErlNifEnv *env, int argc, ERL_NIF_TERM const
 	return enif_make_binary(env, &out);
 }
 
+static
+ERL_NIF_TERM enif_curve25519_scalarmult(ErlNifEnv *env, int argc, ERL_NIF_TERM const argv[])
+{
+        ErlNifBinary n, p, r;
+
+	if (
+                (argc != 2) ||
+                (!enif_inspect_binary(env, argv[0], &n)) ||
+                (!enif_inspect_binary(env, argv[1], &p)) ||
+                (n.size != crypto_scalarmult_curve25519_SCALARBYTES) ||
+                (p.size != crypto_scalarmult_curve25519_BYTES))
+        {
+		return enif_make_badarg(env);
+	}
+
+	if (!enif_alloc_binary(p.size, &r)) {
+		return nacl_error_tuple(env, "alloc_failed");
+	}
+
+        if (crypto_scalarmult_curve25519(r.data, n.data, p.data) != 0) {
+            return enif_make_badarg(env);
+        }
+
+	return enif_make_binary(env, &r);
+}
+
 /* Tie the knot to the Erlang world */
 static ErlNifFunc nif_funcs[] = {
 	{"crypto_box_NONCEBYTES", 0, enif_crypto_box_NONCEBYTES},
@@ -810,7 +836,9 @@ static ErlNifFunc nif_funcs[] = {
 	{"randombytes_b", 1, enif_randombytes},
 	{"randombytes", 1, enif_randombytes, ERL_NIF_DIRTY_JOB_CPU_BOUND},
 	
-	{"scramble_block_16", 2, enif_scramble_block_16}
+	{"scramble_block_16", 2, enif_scramble_block_16},
+
+        {"curve25519_scalarmult", 2, enif_curve25519_scalarmult}
 };
 
 
