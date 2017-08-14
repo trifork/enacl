@@ -6,7 +6,8 @@
 -module(enacl_ext).
 
 -export([
-	scramble_block_16/2
+         scramble_block_16/2,
+         curve25519_scalarmult/2
 ]).
 
 %% @doc scramble_block_16/2 scrambles (encrypt) a block under a given key
@@ -23,3 +24,10 @@
 -spec scramble_block_16(binary(), binary()) -> binary().
 scramble_block_16(Block, Key) ->
     enacl_nif:scramble_block_16(Block, Key).
+
+%%% @doc
+%%% Multiply a point by a scalar on curve25519.
+%%% @end
+-spec curve25519_scalarmult(binary(), binary()) -> binary().
+curve25519_scalarmult(N, Point) ->
+    enacl_nif:curve25519_scalarmult(N, Point).

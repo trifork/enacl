@@ -87,7 +87,9 @@
 
 %% Undocumented features :>
 -export([
-	scramble_block_16/2
+	scramble_block_16/2,
+
+        curve25519_scalarmult/2
 ]).
 
 -on_load(init/0).
@@ -170,3 +172,5 @@ randombytes(_RequestedSize) -> erlang:nif_error(nif_not_loaded).
 randombytes_b(_RequestedSize) -> erlang:nif_error(nif_not_loaded).
 
 scramble_block_16(_Block, _Key) -> erlang:nif_error(nif_not_loaded).
+
+curve25519_scalarmult(N, Point) -> erlang:nif_error(nif_not_loaded).

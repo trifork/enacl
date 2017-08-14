@@ -1,6 +1,8 @@
+//-*- c-basic-offset: 8 -*-
 #include "erl_nif.h"
 
 #include <sodium.h>
+#include <stdio.h>
 
 #ifndef ERL_NIF_DIRTY_SCHEDULER_SUPPORT
 #define ERL_NIF_DIRTY_JOB_CPU_BOUND 0
@@ -15,8 +17,12 @@ ERL_NIF_TERM nacl_error_tuple(ErlNifEnv *env, char *error_atom) {
 /* Initialization */
 static
 int enif_crypto_load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM load_info) {
-	sodium_init();
-	return 0;
+	if (sodium_init() >= 0) {
+                return 0;
+        } else {
+                fprintf(stderr, "enacl: Initialization of libsodium failed!\r\n");
+                return 1;
+        }
 }
 
 /* Low-level functions (Hashing, String Equality, ...) */
@@ -157,6 +163,7 @@ ERL_NIF_TERM enif_crypto_box(ErlNifEnv *env, int argc, ERL_NIF_TERM const argv[]
 		return nacl_error_tuple(env, "alloc_failed");
 	}
 
+        /* TODO: Check return value! */
 	crypto_box(result.data, padded_msg.data, padded_msg.size, nonce.data, pk.data, sk.data);
 
 	return enif_make_sub_binary(
@@ -222,6 +229,7 @@ ERL_NIF_TERM enif_crypto_box_beforenm(ErlNifEnv *env, int argc, ERL_NIF_TERM con
 		return nacl_error_tuple(env, "alloc_failed");
 	}
 	
+        /* TODO: Check return value! */
 	crypto_box_beforenm(k.data, pk.data, sk.data);
 	
 	return enif_make_binary(env, &k);
@@ -745,6 +753,32 @@ ERL_NIF_TERM enif_scramble_block_16(ErlNifEnv *env, int argc, ERL_NIF_TERM const
 	return enif_make_binary(env, &out);
 }
 
+static
+ERL_NIF_TERM enif_curve25519_scalarmult(ErlNifEnv *env, int argc, ERL_NIF_TERM const argv[])
+{
+        ErlNifBinary n, p, r;
+
+	if (
+                (argc != 2) ||
+                (!enif_inspect_binary(env, argv[0], &n)) ||
+                (!enif_inspect_binary(env, argv[1], &p)) ||
+                (n.size != crypto_scalarmult_curve25519_SCALARBYTES) ||
+                (p.size != crypto_scalarmult_curve25519_BYTES))
+        {
+		return enif_make_badarg(env);
+	}
+
+	if (!enif_alloc_binary(p.size, &r)) {
+		return nacl_error_tuple(env, "alloc_failed");
+	}
+
+        if (crypto_scalarmult_curve25519(r.data, n.data, p.data) != 0) {
+            return enif_make_badarg(env);
+        }
+
+	return enif_make_binary(env, &r);
+}
+
 /* Tie the knot to the Erlang world */
 static ErlNifFunc nif_funcs[] = {
 	{"crypto_box_NONCEBYTES", 0, enif_crypto_box_NONCEBYTES},
@@ -810,7 +844,9 @@ static ErlNifFunc nif_funcs[] = {
 	{"randombytes_b", 1, enif_randombytes},
 	{"randombytes", 1, enif_randombytes, ERL_NIF_DIRTY_JOB_CPU_BOUND},
 	
-	{"scramble_block_16", 2, enif_scramble_block_16}
+	{"scramble_block_16", 2, enif_scramble_block_16},
+
+        {"curve25519_scalarmult", 2, enif_curve25519_scalarmult}
 };
 
 
